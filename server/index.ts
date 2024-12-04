@@ -1,9 +1,16 @@
 /**
- * @fileoverview Main server entry point for Open Drive application
- * @requires express
- * @requires https
- * @requires os
- * @requires react-server-dom-webpack/server
+ * @fileoverview Main server entry point for Open Drive application.
+ * This file sets up an HTTPS server with Express and Vite integration for server-side rendering.
+ * 
+ * @module server/index
+ * @requires express - Express web framework
+ * @requires https - HTTPS server functionality
+ * @requires os - Operating system utilities
+ * @requires fs - File system operations
+ * @requires url - URL handling utilities
+ * @requires path - Path manipulation utilities
+ * @requires vite - Vite development server
+ * @requires react-server-dom-webpack/server - React Server Components support
  */
 
 import express from "express";
@@ -19,32 +26,59 @@ import { Transform } from "node:stream";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-/** Express application instance */
+/** 
+ * Express application instance
+ * @type {express.Application}
+ */
 const app = express();
 
-/** Express router for API routes */
+/** 
+ * Express router for API routes
+ * @type {express.Router}
+ */
 export const apiRouter = express.Router();
 
-// middleweare handling
+// Middleware configuration
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api", apiRouter);
 
+/**
+ * SSL configuration options for HTTPS server
+ * @type {Object}
+ * @property {Buffer} key - Private key for SSL
+ * @property {Buffer} cert - SSL certificate
+ */
 const sslOptions = {
   key: fs.readFileSync("./certificate/private.key"),
   cert: fs.readFileSync("./certificate/certificate.crt"),
 };
 
+/**
+ * Base URL path for the application
+ * @type {string}
+ */
 const base = process.env.BASE || "/";
+
+/**
+ * Timeout delay for aborting server-side rendering (in milliseconds)
+ * @type {number}
+ */
 const ABORT_DELAY = 10000;
 
 /**
- * Vite server instance
+ * Vite server instance for development
  * @type {ViteDevServer | undefined}
  */
 let viteApp: ViteDevServer | undefined;
 
-// Initialize Vite server
+/**
+ * Initializes the Vite development server
+ * @async
+ * @function initVite
+ * @returns {Promise<void>}
+ * @throws {Error} If Vite server initialization fails
+ */
 const initVite = async () => {
   try {
     viteApp = await createServer({
@@ -70,17 +104,38 @@ const initVite = async () => {
 // Initialize Vite
 await initVite();
 
+/**
+ * Universal route handler for all incoming requests
+ * Implements server-side rendering with React Server Components
+ * 
+ * @async
+ * @function
+ * @param {express.Request} req - Express request object
+ * @param {express.Response} res - Express response object
+ * @returns {Promise<void>}
+ */
 app.get("*", async (req, res) => {
   try {
     const url = req.originalUrl;
     const { render } = await import("./frontend/server/entry-server.js");
     let didError = false;
+    
     const { pipe, abort } = render(url, {
+      /**
+       * Handles errors during shell rendering
+       * @callback onShellError
+       */
       onShellError() {
         res.status(500);
         res.set({ "Content-Type": "text/html" });
         res.send("<h1>Something went wrong</h1>");
       },
+      
+      /**
+       * Handles successful shell rendering
+       * Sets up streaming of server-rendered content
+       * @callback onShellReady
+       */
       onShellReady() {
         res.status(didError ? 500 : 200);
         res.set({ "Content-Type": "text/html" });
@@ -100,11 +155,18 @@ app.get("*", async (req, res) => {
         });
         pipe(transformStream);
       },
+      
+      /**
+       * Handles runtime errors during rendering
+       * @callback onError
+       * @param {any} error - The error that occurred
+       */
       onError(error: any) {
         didError = true;
         console.error(error);
       },
     });
+    
     setTimeout(() => {
       abort();
     }, ABORT_DELAY);
@@ -115,7 +177,8 @@ app.get("*", async (req, res) => {
 });
 
 /**
- * Get the machine's IP address
+ * Retrieves the machine's network IP address
+ * @function
  * @returns {string} The first non-internal IPv4 address or 'localhost' if none found
  */
 const networkInterfaces = os.networkInterfaces();
@@ -128,15 +191,15 @@ const ip =
     )?.address || "localhost";
 
 /**
- * HTTPS server configuration
- * Using SSL certificates for secure connections
+ * HTTPS server instance
+ * @type {https.Server}
  */
 const server = https.createServer(sslOptions, app);
 
 /**
- * Start the server
- * Listens on all network interfaces (0.0.0.0) on port 3001
+ * Starts the HTTPS server
  * @listens {number} 3001 - The port number
+ * @event listening - Emitted when the server starts listening
  */
 server.listen(3001, "0.0.0.0", () => {
   console.log(`Server started on https://${ip}:3001`);
