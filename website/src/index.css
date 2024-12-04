@@ -1,0 +1,11 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --background: #f8f8f8;
+    --progress-bar: #263238;
+    --danger: #b71c1c;
+}
