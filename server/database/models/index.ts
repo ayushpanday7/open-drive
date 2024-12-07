@@ -1,17 +1,40 @@
-import { Model } from "mongoose";
+import { Model, InferSchemaType, FilterQuery } from "mongoose";
 import { users } from "./user.model";
+import { logs } from "./logs.model";
+import { files } from "./files.model";
+import { links } from "./links.model";
+import { pricing } from "./pricing.model";
+import { storage } from "./storage.model";
 
-// User document interface
-export interface IUser {
-    username: string;
-    password: string;
-    email: string;
-}
+/**
+ * Registry of all available database models
+ * @const registeredModels
+ */
+export const registeredModels = {
+  users,
+  logs,
+  files,
+  links,
+  pricing,
+  storage,
+} as const;
 
-// Export models instance
-export const models = { users };
+export type ModelsList = typeof registeredModels;
+export type ModelNames = keyof ModelsList;
 
-// Define specific model types
-export type Models = {
-    users: typeof users;  // This makes it specific to users model
-};
+export type DocumentType<ModelType> = ModelType extends Model<infer T>
+  ? T
+  : never;
+
+export type CreateDocType<Doc extends ModelNames> = Omit<
+  DocumentType<ModelsList[Doc]>,
+  "createdAt" | "updatedAt" | "_id"
+>;
+
+export type FilterQueryType<ModelName extends ModelNames> = FilterQuery<
+  DocumentType<ModelsList[ModelName]>
+>;
+
+export type UpdateQueryType<Doc extends ModelNames> = Partial<
+  Omit<DocumentType<ModelsList[Doc]>, "createdAt" | "updatedAt" | "_id">
+>;

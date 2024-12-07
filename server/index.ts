@@ -1,7 +1,7 @@
 /**
  * @fileoverview Main server entry point for Open Drive application.
  * This file sets up an HTTPS server with Express and Vite integration for server-side rendering.
- * 
+ *
  * @module server/index
  * @requires express - Express web framework
  * @requires https - HTTPS server functionality
@@ -26,13 +26,13 @@ import { Transform } from "node:stream";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-/** 
+/**
  * Express application instance
  * @type {express.Application}
  */
 const app = express();
 
-/** 
+/**
  * Express router for API routes
  * @type {express.Router}
  */
@@ -107,7 +107,7 @@ await initVite();
 /**
  * Universal route handler for all incoming requests
  * Implements server-side rendering with React Server Components
- * 
+ *
  * @async
  * @function
  * @param {express.Request} req - Express request object
@@ -119,18 +119,25 @@ app.get("*", async (req, res) => {
     const url = req.originalUrl;
     const { render } = await import("./frontend/server/entry-server.js");
     let didError = false;
-    
+
     const { pipe, abort } = render(url, {
       /**
-       * Handles errors during shell rendering
+       * Callback function executed when an error occurs during the initial shell rendering phase.
+       * Sets the HTTP status code to 500 and sends a basic error page to the client.
+       * 
        * @callback onShellError
+       * @memberof ServerRenderCallbacks
+       * @returns {void}
+       * @throws {void}
+       * @example
+       * onShellError(); // Sets 500 status and sends error page
        */
       onShellError() {
         res.status(500);
         res.set({ "Content-Type": "text/html" });
         res.send("<h1>Something went wrong</h1>");
       },
-      
+
       /**
        * Handles successful shell rendering
        * Sets up streaming of server-rendered content
@@ -155,7 +162,7 @@ app.get("*", async (req, res) => {
         });
         pipe(transformStream);
       },
-      
+
       /**
        * Handles runtime errors during rendering
        * @callback onError
@@ -166,7 +173,7 @@ app.get("*", async (req, res) => {
         console.error(error);
       },
     });
-    
+
     setTimeout(() => {
       abort();
     }, ABORT_DELAY);
