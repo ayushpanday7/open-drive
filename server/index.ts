@@ -22,13 +22,18 @@ import { dirname, resolve } from "path";
 import { createServer } from "vite";
 import type { ViteDevServer } from "vite";
 import { Transform } from "node:stream";
-
+import cookieParser from "cookie-parser";
+import { Database } from "@database";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+import { apiRouter } from "./routes";
+import "./contollers";
+
+export let isFirstUser = false;
 
 /**
  * Express application instance
- * @type {express.Application}
+ * @type {Express}
  */
 const app = express();
 
@@ -36,11 +41,22 @@ const app = express();
  * Express router for API routes
  * @type {express.Router}
  */
-export const apiRouter = express.Router();
 
 // Middleware configuration
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Create and configure API router
+
+// Debug middleware for API routes
+apiRouter.use((req, res, next) => {
+  console.log(apiRouter.stack.map((layer) => layer.route?.path));
+  console.log(`API Request: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Mount API routes before any other middleware
 app.use("/api", apiRouter);
 
 /**
@@ -92,7 +108,14 @@ const initVite = async () => {
     });
 
     if (viteApp) {
-      app.use(viteApp.middlewares);
+      // Only apply Vite middleware for non-API routes
+      app.use((req, res, next) => {
+        if (!req.path.startsWith("/api")) {
+          viteApp?.middlewares(req, res, next);
+        } else {
+          next();
+        }
+      });
       console.log("Vite middleware initialized successfully");
     }
   } catch (error) {
@@ -105,7 +128,7 @@ const initVite = async () => {
 await initVite();
 
 /**
- * Universal route handler for all incoming requests
+ * Universal route handler for all non-API requests
  * Implements server-side rendering with React Server Components
  *
  * @async
@@ -114,35 +137,24 @@ await initVite();
  * @param {express.Response} res - Express response object
  * @returns {Promise<void>}
  */
-app.get("*", async (req, res) => {
+app.get("*", async (req, res, next) => {
+  // Skip this handler for API routes
+  if (req.path.startsWith("/api")) {
+    return next();
+  }
+
   try {
     const url = req.originalUrl;
-    const { render } = await import("./frontend/server/entry-server.js");
+    const { render } = await import("./frontend/server/entry-server");
     let didError = false;
 
     const { pipe, abort } = render(url, {
-      /**
-       * Callback function executed when an error occurs during the initial shell rendering phase.
-       * Sets the HTTP status code to 500 and sends a basic error page to the client.
-       * 
-       * @callback onShellError
-       * @memberof ServerRenderCallbacks
-       * @returns {void}
-       * @throws {void}
-       * @example
-       * onShellError(); // Sets 500 status and sends error page
-       */
       onShellError() {
         res.status(500);
         res.set({ "Content-Type": "text/html" });
         res.send("<h1>Something went wrong</h1>");
       },
 
-      /**
-       * Handles successful shell rendering
-       * Sets up streaming of server-rendered content
-       * @callback onShellReady
-       */
       onShellReady() {
         res.status(didError ? 500 : 200);
         res.set({ "Content-Type": "text/html" });
@@ -163,11 +175,6 @@ app.get("*", async (req, res) => {
         pipe(transformStream);
       },
 
-      /**
-       * Handles runtime errors during rendering
-       * @callback onError
-       * @param {any} error - The error that occurred
-       */
       onError(error: any) {
         didError = true;
         console.error(error);
@@ -184,6 +191,12 @@ app.get("*", async (req, res) => {
 });
 
 /**
+ * HTTPS server instance
+ * @type {https.Server}
+ */
+const server = https.createServer(sslOptions, app);
+
+/**
  * Retrieves the machine's network IP address
  * @function
  * @returns {string} The first non-internal IPv4 address or 'localhost' if none found
@@ -197,17 +210,19 @@ const ip =
         !interfaceInfo?.internal && interfaceInfo?.family === "IPv4"
     )?.address || "localhost";
 
-/**
- * HTTPS server instance
- * @type {https.Server}
- */
-const server = https.createServer(sslOptions, app);
+Database.connect().then(async () => {
+  const userDocumentCount = await Database.GET_MODEL("users").countDocuments();
 
-/**
- * Starts the HTTPS server
- * @listens {number} 3001 - The port number
- * @event listening - Emitted when the server starts listening
- */
-server.listen(3001, "0.0.0.0", () => {
-  console.log(`Server started on https://${ip}:3001`);
+  if (userDocumentCount === 0) {
+    isFirstUser = true;
+  }
+
+  /**
+   * Starts the HTTPS server
+   * @listens {number} 3001 - The port number
+   * @event listening - Emitted when the server starts listening
+   */
+  server.listen(3001, "0.0.0.0", () => {
+    console.log(`Server started on https://${ip}:3001`);
+  });
 });

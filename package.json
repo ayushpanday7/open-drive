@@ -5,32 +5,43 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development nodemon --watch server --ext ts,tsx --exec \"node --loader ts-node/esm server/index.ts\"",
-    "build": "tsc",
-    "start": "node --conditions react-server ./dist/index.js"
+    "dev": "NODE_ENV=development bun --watch server/index.ts",
+    "build": "bun run build:server && bun run build:client",
+    "build:server": "tsc",
+    "build:client": "vite build --outDir dist/client",
+    "start": "bun run ./dist/index.js",
+    "preview": "cross-env NODE_ENV=production bun run server"
   },
   "author": "Ayush Panday",
   "license": "ISC",
   "dependencies": {
     "@preact/signals-react": "^2.2.0",
-    "@types/multer": "^1.4.12",
+    "compression": "^1.7.5",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.3",
     "multer": "^1.4.5-lts.1",
-    "react": "^19.0.0-rc.1",
-    "react-dom": "^19.0.0-rc.1",
-    "react-server-dom-webpack": "^19.0.0-rc-7670501b-20241124"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-native-vector-icons": "^10.2.0",
+    "react-router-dom": "^7.0.1",
+    "sirv": "^3.0.0"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "cross-env": "^7.0.3",
     "esbuild": "^0.24.0",
-    "nodemon": "^3.1.7",
-    "ts-node": "^10.9.2",
     "typescript": "^5.7.2",
-    "vite": "^6.0.1"
+    "vite": "^6.0.1",
+    "vite-plugin-pages": "^0.32.4"
   }
 }

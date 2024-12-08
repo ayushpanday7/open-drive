@@ -11,11 +11,21 @@
     "allowJs": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@server": ["server"],
+      "@controllers": ["server/controllers"],
+      "@constants": ["server/constants"],
+      "@database": ["server/database"],
+      "@middleweares": ["server/middleweares"],
+      "@utils": ["server/utils"],
+      "@types/*": ["server/types/*"]
+    },
   },
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"
   },
-  "include": ["server/**/*.ts",]
+  "include": ["server/**/*.ts"]
 }

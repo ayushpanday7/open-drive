@@ -64,7 +64,7 @@ export class Database {
    * @param {RegisteredModel} ModelName - Name of the registered model
    * @returns {Model<DocumentType<ModelsList[RegisteredModel]>>} Mongoose model
    */
-  private static getModel<RegisteredModel extends ModelNames>(
+  static GET_MODEL<RegisteredModel extends ModelNames>(
     ModelName: RegisteredModel
   ) {
     return registeredModels[ModelName] as unknown as Model<
@@ -85,7 +85,7 @@ export class Database {
     databaseName: registeredModel,
     doc: CreateDocType<registeredModel>
   ): Promise<dbResponse> {
-    const model = this.getModel(databaseName);
+    const model = this.GET_MODEL(databaseName);
     try {
       const created = await model.create(doc);
       if (created) {
@@ -137,7 +137,7 @@ export class Database {
     filter: FilterQueryType<ModelName>,
     doc: UpdateQueryType<ModelName>
   ) {
-    const model = this.getModel(databaseName);
+    const model = this.GET_MODEL(databaseName);
     try {
       const updated = await model.updateOne(filter, [doc]);
       if (updated.matchedCount === 0) {
@@ -184,7 +184,7 @@ export class Database {
     filter: FilterQueryType<ModelName>,
     doc: UpdateQueryType<ModelName>
   ) {
-    const model = this.getModel(databaseName);
+    const model = this.GET_MODEL(databaseName);
     try {
       const updated = await model.updateMany(filter, [doc]);
       if (updated.matchedCount === 0) {
@@ -222,7 +222,7 @@ export class Database {
     databaseName: ModelName,
     filter: FilterQueryType<ModelName>
   ) {
-    const model = this.getModel(databaseName);
+    const model = this.GET_MODEL(databaseName);
     try {
       const deleted = await model.deleteOne(filter);
       if (deleted.deletedCount === 0) {
@@ -260,7 +260,7 @@ export class Database {
     databaseName: ModelName,
     filter: FilterQueryType<ModelName>
   ) {
-    const model = this.getModel(databaseName);
+    const model = this.GET_MODEL(databaseName);
     try {
       const deleted = await model.deleteMany(filter);
       if (deleted.deletedCount === 0) {
@@ -298,7 +298,7 @@ export class Database {
     databaseName: ModelName,
     filter: FilterQueryType<ModelName>
   ) {
-    const model = this.getModel(databaseName);
+    const model = this.GET_MODEL(databaseName);
     try {
       const found = await model.findOne(filter);
       if (!found) {
@@ -336,7 +336,7 @@ export class Database {
     databaseName: ModelName,
     filter: FilterQueryType<ModelName>
   ) {
-    const model = this.getModel(databaseName);
+    const model = this.GET_MODEL(databaseName);
     try {
       const found = await model.find(filter);
       if (found.length === 0) {
